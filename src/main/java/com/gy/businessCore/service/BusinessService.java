@@ -13,6 +13,6 @@ public interface BusinessService {
     public TestEntity getJPAInfo();
 
 
-    public List<Map<String,List<WeaveContainerImage>>> getWeaveContainerImage();
+    public WeaveContainerImageInfo getWeaveContainerImage();
 
 }

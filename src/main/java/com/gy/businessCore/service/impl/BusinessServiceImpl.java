@@ -31,7 +31,7 @@ public class BusinessServiceImpl implements BusinessService {
     }
 
     @Override
-    public List<Map<String, List<WeaveContainerImage>>> getWeaveContainerImage() {
+    public WeaveContainerImageInfo getWeaveContainerImage() {
         String weaveappstr = System.getenv("WEAVE_APP_ENDPOINT");
         List<String> weaveurls = new ArrayList<>();
         if (weaveappstr.contains(";")) {
@@ -39,9 +39,10 @@ public class BusinessServiceImpl implements BusinessService {
         } else {
             weaveurls.add(weaveappstr);
         }
-        List<Map<String, List<WeaveContainerImage>>> results = new ArrayList<>();
+//        List<Map<String, List<WeaveContainerImage>>> results = new ArrayList<>();
+        WeaveContainerImageInfo resultInfo = new WeaveContainerImageInfo();
+        Map<String, List<WeaveContainerImage>> map = new HashMap<>();
         weaveurls.forEach(url -> {
-            Map<String, List<WeaveContainerImage>> map = new HashMap<>();
             List<WeaveContainerImage> mapImage = new ArrayList<>();
             WeaveApi api = weavescopeService.getWeaveApi(url);
             WeaveContainerImageNodes imageNodes = weavescopeService.getWeaveContainerImage(url);
@@ -75,9 +76,9 @@ public class BusinessServiceImpl implements BusinessService {
                 }
             });
             map.put(api.getId(),mapImage);
-            results.add(map);
         });
-        return results;
+        resultInfo.setNodes(map);
+        return resultInfo;
     }
 
     private String getContainerImageRealName(String name) {

@@ -41,17 +41,9 @@ public class BusinessController {
 
     @RequestMapping("getWeaveInfo")
     @ResponseBody
-    public List<Map<String,List<WeaveContainerImage>>> getWeaveContainerImage() throws JsonProcessingException {
-        return service.getWeaveContainerImage();
-//        return mapper.writeValueAsString(service.getWeaveContainerImage());
+    public String getWeaveContainerImage() throws JsonProcessingException {
+//        return service.getWeaveContainerImage();
+        return mapper.writeValueAsString(service.getWeaveContainerImage());
     }
-
-//    @RequestMapping("getMonitorRecord")
-//    @ResponseBody
-//    public String getOperationMonitorEntity(String uuid) throws Exception {
-////        return service.getOperationMonitorEntity(uuid);
-//                return mapper.writeValueAsString(service.getOperationMonitorEntity(uuid));
-//    }
-
 
 }
