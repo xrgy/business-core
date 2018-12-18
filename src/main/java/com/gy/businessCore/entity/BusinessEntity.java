@@ -32,4 +32,8 @@ public class BusinessEntity {
     @Column(name = "available_score")
     private float available_score;
 
+    @Column(name = "cluster")
+    private String cluster;
+
+
 }

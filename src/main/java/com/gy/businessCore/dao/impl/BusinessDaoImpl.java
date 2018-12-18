@@ -37,4 +37,18 @@ public class BusinessDaoImpl implements BusinessDao {
         return em.merge(entity);
     }
 
+    @Override
+    public List<String> getCluster() {
+        String sql="select cluster from tbl_business group by cluster";
+        return em.createNativeQuery(sql).getResultList();
+    }
+
+    @Override
+    public List<BusinessEntity> getBusinessByCluster(String cluster) {
+        String sql = "FROM BusinessEntity entity WHERE entity.cluster =:cluster";
+        return em.createQuery(sql, BusinessEntity.class)
+                .setParameter("cluster", cluster)
+                .getResultList();
+    }
+
 }
