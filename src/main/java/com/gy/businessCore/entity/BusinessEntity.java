@@ -35,5 +35,8 @@ public class BusinessEntity {
     @Column(name = "cluster")
     private String cluster;
 
+    @Column(name = "image")
+    private String image;
+
 
 }

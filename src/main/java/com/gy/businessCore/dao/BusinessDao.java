@@ -17,4 +17,6 @@ public interface BusinessDao {
 
     public List<BusinessEntity> getBusinessByCluster(String cluster);
 
+    public BusinessEntity getBusinessByClusterAndImage(String cluster,String image);
+
 }

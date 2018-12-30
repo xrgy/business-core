@@ -83,4 +83,21 @@ public interface BusinessEnum {
         }
     }
 
+    enum WeaveEnum {
+        IMAGE_TABLE("image_table"),
+        IMAGE_ID("label_ ID"),
+        IMAGE_NAME("label_ Name"),
+        IMAGE_TAG("label_ Tag");
+
+
+        private String value;
+
+        WeaveEnum(String msg) {
+            this.value = msg;
+        }
+
+        public String value() {
+            return this.value;
+        }
+    }
 }

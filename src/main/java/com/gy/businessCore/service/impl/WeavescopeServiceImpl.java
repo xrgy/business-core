@@ -16,8 +16,9 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class WeavescopeServiceImpl implements WeavescopeService{
 
+    //http://47.94.157.199:32404/api/topology/containers?system=application&stopped=running&pseudo=hide
     private static final String PATH_API="/api";
-    private static final String PATH_CONATINER_IMAGE="/api/topology/containers-by-image";
+    private static final String PATH_CONATINER_IMAGE="/api/topology/containers?stopped=running&pseudo=hide";
     private static final String HTTP = "http://";
 
     @Autowired

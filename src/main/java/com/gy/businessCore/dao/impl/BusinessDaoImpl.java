@@ -51,4 +51,17 @@ public class BusinessDaoImpl implements BusinessDao {
                 .getResultList();
     }
 
+    @Override
+    public BusinessEntity getBusinessByClusterAndImage(String cluster, String image) {
+        String sql = "FROM BusinessEntity entity WHERE entity.cluster =:cluster AND entity.image =:image";
+        List<BusinessEntity> result = em.createQuery(sql, BusinessEntity.class)
+                .setParameter("cluster", cluster)
+                .setParameter("image",image)
+                .getResultList();
+        if (result.size() == 0) {
+            return null;
+        }
+        return result.get(0);
+    }
+
 }

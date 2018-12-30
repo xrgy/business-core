@@ -16,10 +16,13 @@ public class WeaveContainerImage {
 
     private String name;
 
-    private String label;
+//    private String label;
 
-    private String labelMinor;
+//    private String labelMinor;
 
     private List<String> adjacency;
+
+    private List<WeaveContainerImageTable> tables;
+
 
 }
