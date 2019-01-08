@@ -19,4 +19,14 @@ public interface BusinessDao {
 
     public BusinessEntity getBusinessByClusterAndImage(String cluster,String image);
 
+    public List<BusinessEntity> getBusinessList();
+
+    boolean insertBusinessResource(BusinessResourceEntity entity);
+
+    /**
+     * 根据业务Id获取该业务中的资源
+     * @param businessId
+     * @return
+     */
+    List<BusinessResourceEntity> getBusinessResourcesByBusinessId(String businessId);
 }

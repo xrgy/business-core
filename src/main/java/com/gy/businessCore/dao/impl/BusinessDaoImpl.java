@@ -64,4 +64,29 @@ public class BusinessDaoImpl implements BusinessDao {
         return result.get(0);
     }
 
+    @Override
+    public List<BusinessEntity> getBusinessList() {
+        String sql = "FROM BusinessEntity";
+        return em.createQuery(sql, BusinessEntity.class)
+                .getResultList();
+    }
+
+    @Override
+    public boolean insertBusinessResource(BusinessResourceEntity entity) {
+        try {
+            em.merge(entity);
+            return true;
+        }catch (Exception e){
+            return false;
+        }
+    }
+
+    @Override
+    public List<BusinessResourceEntity> getBusinessResourcesByBusinessId(String businessId) {
+        String sql = "FROM BusinessResourceEntity Where businessUuid =:businessId";
+        return em.createQuery(sql, BusinessResourceEntity.class)
+                .setParameter("businessId",businessId)
+                .getResultList();
+    }
+
 }

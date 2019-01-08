@@ -100,4 +100,103 @@ public interface BusinessEnum {
             return this.value;
         }
     }
+
+    enum BusyQuotaEnum {
+        PROCESSING_PERSEC("processingPersec"),
+        THREAD_BUSY_PERCENT("threadBusyPercent"),
+        MYSQL_QUESTIONS_RATE("mysql_questions_rate"),
+        CPU_PERCENT("cpu_percent"),
+        MEMORY_PERCENT("memory_percent");
+
+
+        private String value;
+
+        BusyQuotaEnum(String msg) {
+            this.value = msg;
+        }
+
+        public String value() {
+            return this.value;
+        }
+    }
+
+
+    enum BusyWeightTypeEnum{
+        MYSQL("mysql"),
+
+        TOMCAT("tomcat"),
+
+        CVK("cvk"),
+
+        VIRTUALMACHINE("virtualMachine"),
+
+        K8SNODE("k8snode"),
+
+        K8SCONTAINER("k8scontainer");
+
+        private String value;
+
+        BusyWeightTypeEnum(String msg) {
+            this.value = msg;
+        }
+
+        public String value() {
+            return this.value;
+        }
+    }
+    enum VariableWeightParamEnum {
+        VARIABLE_A("variable.a"),
+        VARIABLE_B("variable.b");
+
+        private String value;
+
+        VariableWeightParamEnum(String msg) {
+            this.value = msg;
+        }
+
+        public String value() {
+            return this.value;
+        }
+    }
+
+    enum ResourceWeightEnum {
+        SITUATION_ONE("situationOne"),
+        SITUATION_WITH_MYSQL("situationWithMySQL"),
+        SITUATION__WITH_TOMCAT("situationWithTomcat"),
+        SITUATION_WITH_BOTH("situationWithBoth");
+
+        private String value;
+
+        ResourceWeightEnum(String msg) {
+            this.value = msg;
+        }
+
+        public String value() {
+            return this.value;
+        }
+    }
+
+    enum QuotaEnum {
+        TOMCAT_PROCESSINGPERSEC("monitor.tomcat.Tomcat_GlobalRequestProcessor_processingPersec"),
+        TOMCAT_THREADSBUSYPERCENT("monitor.tomcat.Tomcat_ThreadPool_ThreadsBusyPercent"),
+        MYSQL_QUESTIONSRATE("monitor.mysql.mysql_questions_rate"),
+        CVK_CPU_USAGE("monitor.cvk.cas_cvk_host_cpu_usage"),
+        CVK_MEM_USAGE("monitor.cvk.cas_cvk_host_memory_usage"),
+        VM_CPU_USAGE("monitor.vm.cas_vm_cpu_usage"),
+        VM_MEM_USAGE("monitor.vm.cas_vm_memory_usage"),
+        K8SNODE_CPU_USAGE("monitor.k8snode.k8s_node_cpu_usage"),
+        K8SNODE_MEM_USAGE("monitor.k8snode.k8s_node_memory_usage"),
+        K8SCONTAINER_CPU_USAGE("monitor.k8scontainer.k8s_container_cpu_usage"),
+        K8SCONTAINER_MEM_USAGE("monitor.k8scontainer.k8s_container_memory_usage");
+
+        private String value;
+
+        QuotaEnum(String msg) {
+            this.value = msg;
+        }
+
+        public String value() {
+            return this.value;
+        }
+    }
 }

@@ -15,4 +15,27 @@ public interface BusinessService {
 
     public WeaveContainerImageInfo getWeaveContainerImage();
 
+
+    public List<BusinessEntity> getBusinessList();
+
+    /**
+     * 添加业务资源
+     * @param resourceEntity
+     * @return
+     */
+    boolean insertBusinessResource(BusinessResourceEntity resourceEntity);
+
+    /**
+     * 添加业务资源列表
+     * @param resourceEntityList
+     * @return
+     */
+    boolean insertBusinessResourceList(List<BusinessResourceEntity> resourceEntityList);
+
+
+    /**
+     * 计算业务score
+     * @param businessId
+     */
+    void calculateBusinessScore(String businessId);
 }
