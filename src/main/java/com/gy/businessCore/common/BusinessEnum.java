@@ -187,11 +187,53 @@ public interface BusinessEnum {
         K8SNODE_CPU_USAGE("monitor.k8snode.k8s_node_cpu_usage"),
         K8SNODE_MEM_USAGE("monitor.k8snode.k8s_node_memory_usage"),
         K8SCONTAINER_CPU_USAGE("monitor.k8scontainer.k8s_container_cpu_usage"),
-        K8SCONTAINER_MEM_USAGE("monitor.k8scontainer.k8s_container_memory_usage");
+        K8SCONTAINER_MEM_USAGE("monitor.k8scontainer.k8s_container_memory_usage"),
+        MYSQL_MONITORSTATUS("mysql_monitorstatus"),
+        TOMCAT_MONITORSTATUS("jmx_monitorstatus"),
+        CVK_MONITORSTATUS("cas_cvk_monitorstatus"),
+        VIRTUALMACHINE_MONITORSTATUS("cas_vm_monitorstatus"),
+        K8SCONTAINER_MONITORSTATUS("k8s_container_monitorstatus"),
+        K8SNODE_MONITORSTATUS("k8s_node_monitorstatus");
+
+
+
 
         private String value;
 
         QuotaEnum(String msg) {
+            this.value = msg;
+        }
+
+        public String value() {
+            return this.value;
+        }
+    }
+
+    enum AlertTypeEnum {
+        CRITICAL("critical"),//紧急
+        MAJOR("major"),//重要
+        MINOR("minor"),//次要
+        WARNING("warning"),//警告
+        NOTICE("notice");//通知
+
+
+        private String value;
+
+        AlertTypeEnum(String msg) {
+            this.value = msg;
+        }
+
+        public String value() {
+            return this.value;
+        }
+    }
+    enum BusinessAvailableEnum {
+        AVAILABLE_INTERVAL("business.available.interval");
+
+
+        private String value;
+
+        BusinessAvailableEnum(String msg) {
             this.value = msg;
         }
 

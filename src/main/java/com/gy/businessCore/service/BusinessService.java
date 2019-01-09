@@ -2,6 +2,8 @@ package com.gy.businessCore.service;
 
 import com.gy.businessCore.entity.*;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -37,5 +39,5 @@ public interface BusinessService {
      * 计算业务score
      * @param businessId
      */
-    void calculateBusinessScore(String businessId);
+    void calculateBusinessScore(String businessId) throws IOException;
 }

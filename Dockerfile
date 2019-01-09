@@ -14,6 +14,8 @@ ENV PATH $PATH:$JAVA_HOME/bin
 #ENV PATH $PATH:$JAVA_HOME/bin:$CATALINA_HOME/lib:$CATALINA_HOME/bin
 #ADD portal-1.0.war /usr/local/apache-tomcat-8.5.34/webapps
 COPY lib /lib
+COPY busyweight.properties /busyweight.properties
+COPY healthRatio.properties /healthRatio.properties
 ADD business-core-1.0.jar /business-core.jar
 #RUN apt-get -y install wget git unzip
 #RUN unzip portal-1.0.jar -d /portal
