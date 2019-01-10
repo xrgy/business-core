@@ -72,6 +72,18 @@ public class BusinessDaoImpl implements BusinessDao {
     }
 
     @Override
+    public BusinessEntity getBusinessByUuid(String  uuid) {
+        String sql = "FROM BusinessEntity entity WHERE entity.uuid =:uuid";
+        List<BusinessEntity> result = em.createQuery(sql, BusinessEntity.class)
+                .setParameter("uuid", uuid)
+                .getResultList();
+        if (result.size() == 0) {
+            return null;
+        }
+        return result.get(0);
+    }
+
+    @Override
     public boolean insertBusinessResource(BusinessResourceEntity entity) {
         try {
             em.merge(entity);

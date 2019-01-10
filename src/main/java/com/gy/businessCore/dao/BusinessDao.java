@@ -21,6 +21,8 @@ public interface BusinessDao {
 
     public List<BusinessEntity> getBusinessList();
 
+    public BusinessEntity getBusinessByUuid(String uuid);
+
     boolean insertBusinessResource(BusinessResourceEntity entity);
 
     /**

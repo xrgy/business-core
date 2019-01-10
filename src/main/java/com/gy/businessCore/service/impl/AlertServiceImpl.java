@@ -50,7 +50,7 @@ public class AlertServiceImpl implements AlertService {
 
     @Override
     public Map<String, Integer> getAlertInfoByMonitorUuid(String monitorUuid) {
-        ResponseEntity<String> response = rest().getForEntity(alertPrefix()+PATH_GET_SEVERITY_COUNT,String.class);
+        ResponseEntity<String> response = rest().getForEntity(alertPrefix()+PATH_GET_SEVERITY_COUNT+"?monitorUuid={1}",String.class,monitorUuid);
         try {
             return objectMapper.readValue(response.getBody(),Map.class);
         } catch (IOException e) {

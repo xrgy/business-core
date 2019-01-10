@@ -5,9 +5,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gy.businessCore.entity.BusinessResourceEntity;
+import com.gy.businessCore.entity.InfluxData;
 import com.gy.businessCore.entity.TestEntity;
 import com.gy.businessCore.entity.WeaveContainerImage;
 import com.gy.businessCore.service.BusinessService;
+import com.gy.businessCore.service.InfluxService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +31,9 @@ public class BusinessController {
 
     @Autowired
     private BusinessService service;
+
+    @Autowired
+    private InfluxService influxService;
 
     @Autowired
     private ObjectMapper mapper;
@@ -71,4 +76,29 @@ public class BusinessController {
         return service.insertBusinessResourceList(resourceEntityList);
 
     }
+
+    @RequestMapping("insertResourceScore")
+    @ResponseBody
+    public void insertResourceScore(){
+//        InfluxData data = new InfluxData();
+//        data.setSourceId("11111");
+//        data.setBusyScore("48.78");
+//        data.setAvailableScore("57.97");
+//        data.setHealthScore("67.45");
+//        influxService.insertResourceScore(data);
+    }
+
+    @RequestMapping("getResourceScore")
+    @ResponseBody
+    public String getResourceScore() throws JsonProcessingException {
+        return mapper.writeValueAsString(influxService.getScoreDataBymonitorAndInterval("11113",7));
+    }
+
+    @RequestMapping("calculateBusinessScore")
+    @ResponseBody
+    public void calculateBusinessScore(String businessId) throws IOException {
+        service.calculateBusinessScore(businessId);
+    }
+
+
 }

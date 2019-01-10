@@ -11,6 +11,7 @@ import com.gy.businessCore.utils.ProperUtil;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.QueryResult;
+import org.influxdb.impl.InfluxDBResultMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
@@ -47,32 +48,26 @@ public class InfluxServiceImpl implements InfluxService {
     public void insertResourceScore(InfluxData data) {
         InfluxDBConnect connect = new InfluxDBConnect();
         Map<String,String> tags = new HashMap<>();
-        tags.put("source_id",data.getSourceId());
-        connect.insertInfluxdb(TABLE_NAME,tags,MapObjectUtil.object2Map(data));
+        tags.put("source_id",data.getSource_id());
+        Map<String,Object> fileds = new HashMap<>();
+        fileds.put("busy_score",data.getBusy_score());
+        fileds.put("health_score",data.getHealth_score());
+        fileds.put("available_score",data.getAvailable_score());
+        connect.insertInfluxdb(TABLE_NAME,tags,fileds);
     }
 
     @Override
     public List<InfluxData> getScoreDataBymonitorAndInterval(String monitorUuid, int interval) {
 
-        String sql = "select * from "+ TABLE_NAME+" where source_id="+"'"+monitorUuid+"'"+" and time>now-"+interval+"d";
+        String sql = "select * from "+ TABLE_NAME+" where source_id="+"'"+monitorUuid+"'"+" and time>now()-"+interval+"d";
         InfluxDBConnect connect = new InfluxDBConnect();
         QueryResult results = connect.query(sql);
 
         if(results.getResults() == null){
             return null;
         }
-//        List<InfluxData> lists = new ArrayList<CodeInfo>();
-        for (QueryResult.Result result : results.getResults()) {
-
-            List<QueryResult.Series> series= result.getSeries();
-            for (QueryResult.Series serie : series) {
-                List<List<Object>>  values = serie.getValues();
-                List<String> columns = serie.getColumns();
-
-//                lists.addAll(getQueryData(columns, values));
-            }
-        }
-
-        return null;
+        InfluxDBResultMapper resultMapper = new InfluxDBResultMapper();
+        List<InfluxData> list = resultMapper.toPOJO(results, InfluxData.class);
+        return list;
     }
 }

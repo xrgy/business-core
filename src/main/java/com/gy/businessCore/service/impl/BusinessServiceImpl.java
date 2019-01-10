@@ -5,10 +5,7 @@ import com.gy.businessCore.common.BusinessEnum;
 import com.gy.businessCore.dao.BusinessDao;
 import com.gy.businessCore.entity.*;
 import com.gy.businessCore.entity.monitor.OperationMonitorEntity;
-import com.gy.businessCore.service.AlertService;
-import com.gy.businessCore.service.BusinessService;
-import com.gy.businessCore.service.MonitorService;
-import com.gy.businessCore.service.WeavescopeService;
+import com.gy.businessCore.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.ls.LSInput;
@@ -19,6 +16,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.Buffer;
 import java.util.*;
 
@@ -40,6 +38,9 @@ public class BusinessServiceImpl implements BusinessService {
 
     @Autowired
     AlertService alertService;
+
+    @Autowired
+    InfluxService influxService;
 
     @Override
     public TestEntity getJPAInfo() {
@@ -202,6 +203,10 @@ public class BusinessServiceImpl implements BusinessService {
     @Override
     public void calculateBusinessScore(String businessId) throws IOException {
         List<BusinessResourceEntity> businessResourceList = dao.getBusinessResourcesByBusinessId(businessId);
+        BusinessEntity businessEntity = dao.getBusinessByUuid(businessId);
+        if (null == businessEntity){
+            return;
+        }
         if (null == businessResourceList || businessResourceList.size() <= 0) {
             return;
         }
@@ -237,7 +242,13 @@ public class BusinessServiceImpl implements BusinessService {
                 tomcatConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.TOMCAT.value() + "." +
                         BusinessEnum.BusyQuotaEnum.THREAD_BUSY_PERCENT.value())));
                 String persec = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.TOMCAT_PROCESSINGPERSEC.value());
+                if (null==persec){
+                    persec="0";
+                }
                 String threadBusyPercent = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.TOMCAT_THREADSBUSYPERCENT.value());
+                if (null==threadBusyPercent){
+                    threadBusyPercent="0";
+                }
                 List<Double> tomcatQuotaValue = new ArrayList<>();
                 int min = str2int(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.TOMCAT.value() + "." +
                         BusinessEnum.BusyQuotaEnum.PROCESSING_PERSEC.value() + ".min"));
@@ -249,6 +260,9 @@ public class BusinessServiceImpl implements BusinessService {
                 //resBusyScore就是这个tomcat资源的繁忙度
             } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.MYSQL.value())) {
                 String questionRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.MYSQL_QUESTIONSRATE.value());
+                if (null==questionRate){
+                    questionRate="0";
+                }
                 resBusyScore = str2double(questionRate);
                 //resBusyScore就是这个mysql资源的繁忙度
             } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.CVK.value())) {
@@ -258,7 +272,13 @@ public class BusinessServiceImpl implements BusinessService {
                 cvkConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.CVK.value() + "." +
                         BusinessEnum.BusyQuotaEnum.MEMORY_PERCENT.value())));
                 String cvkCpuRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.CVK_CPU_USAGE.value());
+                if (null==cvkCpuRate){
+                    cvkCpuRate="0";
+                }
                 String cvkMemRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.CVK_MEM_USAGE.value());
+                if (null==cvkMemRate){
+                    cvkMemRate="0";
+                }
                 List<Double> cvkQuotaValue = new ArrayList<>();
                 cvkQuotaValue.add(str2double(cvkCpuRate));
                 cvkQuotaValue.add(str2double(cvkMemRate));
@@ -271,7 +291,13 @@ public class BusinessServiceImpl implements BusinessService {
                 vmConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.VIRTUALMACHINE.value() + "." +
                         BusinessEnum.BusyQuotaEnum.MEMORY_PERCENT.value())));
                 String vmCpuRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.VM_CPU_USAGE.value());
+                if (null==vmCpuRate){
+                    vmCpuRate="0";
+                }
                 String vmMemRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.VM_MEM_USAGE.value());
+                if (null==vmMemRate){
+                    vmMemRate="0";
+                }
                 List<Double> vmQuotaValue = new ArrayList<>();
                 vmQuotaValue.add(str2double(vmCpuRate));
                 vmQuotaValue.add(str2double(vmMemRate));
@@ -280,7 +306,13 @@ public class BusinessServiceImpl implements BusinessService {
 
             } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.K8SNODE.value())) {
                 String k8snCpuRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.K8SNODE_CPU_USAGE.value());
+                if (null==k8snCpuRate){
+                    k8snCpuRate="0";
+                }
                 String k8snMemRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.K8SNODE_MEM_USAGE.value());
+                if (null==k8snMemRate){
+                    k8snMemRate="0";
+                }
                 List<Double> k8snConstantW = new ArrayList<>();
                 k8snConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.K8SNODE.value() + "." +
                         BusinessEnum.BusyQuotaEnum.CPU_PERCENT.value())));
@@ -294,7 +326,13 @@ public class BusinessServiceImpl implements BusinessService {
 
             } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.K8SCONTAINER.value())) {
                 String k8scCpuRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.K8SCONTAINER_CPU_USAGE.value());
+                if (null==k8scCpuRate){
+                    k8scCpuRate="0";
+                }
                 String k8scMemRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.K8SCONTAINER_MEM_USAGE.value());
+                if (null==k8scMemRate){
+                    k8scMemRate="0";
+                }
                 List<Double> k8scConstantW = new ArrayList<>();
                 k8scConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.K8SCONTAINER.value() + "." +
                         BusinessEnum.BusyQuotaEnum.CPU_PERCENT.value())));
@@ -389,6 +427,7 @@ public class BusinessServiceImpl implements BusinessService {
         resWeightMap = calResWeight(businessResourceList, monitorUuidList, typeWeighMap);
         //业务繁忙度
         Double busyscore = calBussinessBusyScore(resourceBusyScoreMap, resWeightMap);
+        businessEntity.setBusy_score(double2float2(busyscore));
         //业务健康度
         //先获取资源的monitorstauts 如果为0则该资源的健康度为0
         Properties propertiesHealth = new Properties();
@@ -439,10 +478,83 @@ public class BusinessServiceImpl implements BusinessService {
         });
         //业务健康度
         Double healthscore = calBussinessBusyScore(resHealthMap, resWeightMap);
-
-        //todo 业务可用度
+        businessEntity.setHealth_score(double2float2(healthscore));
         //资源可用度
+        Map<String,Double> resAvailableMap = new HashMap<>();
         int day = str2int(propertiesHealth.getProperty(BusinessEnum.BusinessAvailableEnum.AVAILABLE_INTERVAL.value()));
+        businessResourceList.forEach(x -> {
+            Double resAvaliable = 0.0;
+            Double reHealth = resHealthMap.get(x.getMonitorId());
+            List<InfluxData> influxDataList = influxService.getScoreDataBymonitorAndInterval(x.getMonitorId(), day);
+            if (null == influxDataList || influxDataList.size() == 0){
+                //如果列表为空，判断健康度是否为0，为0，则可用性为0，健康度不为0，可用性为100.0，
+                if (reHealth == 0){
+                    resAvaliable = 0.0;
+                }else {
+                    resAvaliable = 100.0;
+                }
+            }else {
+                //如果列表不为空，如果现在这次健康度为0，则（1-（7天内健康度为0的次数+1）/（7天内所有数据条数+1））*100，
+                // 如果这次健康度不为0，则（1-（7天内健康度为0的次数）/（7天内所有数据条数+1））*100
+                int healthCount = calHealthCount(influxDataList);
+                int sumcount  = influxDataList.size();
+                if (reHealth==0){
+                    resAvaliable = (1-(healthCount+1)*1.0/(sumcount+1))*100;
+                }else {
+                    resAvaliable = (1-healthCount*1.0/(sumcount+1))*100;
+                }
+
+            }
+            resAvailableMap.put(x.getMonitorId(),resAvaliable);
+        });
+        Double availablescore = calBussinessBusyScore(resAvailableMap, resWeightMap);
+        businessEntity.setAvailable_score(double2float2(availablescore));
+        //将资源的健康度，繁忙度，可用度保存至数据库 influxdb,mysql
+        businessResourceList.forEach(x->{
+            double busy = double2float2(resourceBusyScoreMap.get(x.getMonitorId()));
+            double health = double2float2(resHealthMap.get(x.getMonitorId()));
+            double ava = double2float2(resAvailableMap.get(x.getMonitorId()));
+            x.setBusy_score(busy);
+            x.setHealth_score(health);
+            x.setAvailable_score(ava);
+            dao.insertBusinessResource(x);
+            InfluxData data = new InfluxData();
+            data.setSource_id(x.getMonitorId());
+            data.setBusy_score(busy);
+            data.setHealth_score(health);
+            data.setAvailable_score(ava);
+            influxService.insertResourceScore(data);
+        });
+        //将业务的健康度，繁忙度，可用度保存在mysql
+        dao.insertBusiness(businessEntity);
+    }
+
+    /**
+     * 将double转为float保留两位小数
+     * @param d
+     * @return
+     */
+    private double double2float2(Double d) {
+        BigDecimal b = new BigDecimal(d);
+//        float df = b.setScale(2, BigDecimal.ROUND_HALF_UP).floatValue();
+        double df = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
+
+        return df;
+    }
+
+    /**
+     * 计算influxdb这些数据中健康度为0的次数
+     * @param influxDataList
+     * @return
+     */
+    private int calHealthCount(List<InfluxData> influxDataList) {
+        int count = 0;
+        for (InfluxData influxData : influxDataList) {
+            if (influxData.getHealth_score() == 0){
+                count++;
+            }
+        }
+        return count;
 
     }
 
@@ -456,13 +568,16 @@ public class BusinessServiceImpl implements BusinessService {
     private Double calResourceHealthScore(List<Double> ratioList, Map<String, Integer> severityCount) {
         Double sum = 0.0;
         for (int i = 0; i < ratioList.size(); i++) {
-            Integer cpunt = severityCount.get(i + "");
+            Integer cpunt =0;
+            if (severityCount.containsKey(i+"")) {
+                cpunt = severityCount.get(i + "");
+            }
             sum += cpunt * ratioList.get(i);
         }
-        Double score = 100-sum;
-        if (score<0){
+        Double score = 100 - sum;
+        if (score < 0) {
             return 0.0;
-        }else {
+        } else {
             return score;
         }
     }

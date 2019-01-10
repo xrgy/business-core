@@ -27,13 +27,13 @@ public class BusinessResourceEntity {
     private String monitorId;
 
     @Column(name = "busy_score")
-    private float busy_score;
+    private double busy_score;
 
     @Column(name = "health_score")
-    private float health_score;
+    private double health_score;
 
     @Column(name = "available_score")
-    private float available_score;
+    private double available_score;
 
     @Column(name = "type")
     private String type;
