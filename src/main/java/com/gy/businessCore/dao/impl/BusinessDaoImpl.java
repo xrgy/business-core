@@ -84,6 +84,7 @@ public class BusinessDaoImpl implements BusinessDao {
     }
 
     @Override
+    @Transactional
     public boolean insertBusinessResource(BusinessResourceEntity entity) {
         try {
             em.merge(entity);

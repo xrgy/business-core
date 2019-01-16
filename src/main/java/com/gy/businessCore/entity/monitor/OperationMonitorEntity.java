@@ -23,7 +23,7 @@ public class OperationMonitorEntity {
 
 //    private String middleTypeId;
 
-    private String lightTypeId;
+    private String lightType;
 
     private String monitorType;
 

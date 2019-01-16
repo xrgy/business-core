@@ -4,8 +4,9 @@ package com.gy.businessCore.service.impl;
 import com.gy.businessCore.common.BusinessEnum;
 import com.gy.businessCore.dao.BusinessDao;
 import com.gy.businessCore.entity.*;
-import com.gy.businessCore.entity.monitor.OperationMonitorEntity;
+import com.gy.businessCore.entity.monitor.*;
 import com.gy.businessCore.service.*;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.w3c.dom.ls.LSInput;
@@ -210,7 +211,7 @@ public class BusinessServiceImpl implements BusinessService {
         if (null == businessResourceList || businessResourceList.size() <= 0) {
             return;
         }
-        List<OperationMonitorEntity> monitorList = monitorService.getAllMonitorRecord();
+        List<OperationMonitorEntity> monitorList = getAllMonitorRecord();
         Map<String, OperationMonitorEntity> monitorUuidList = new HashMap<>();
         monitorList.forEach(x -> monitorUuidList.put(x.getUuid(), x));
         //判断业务中的资源是否在监控中，不在则结束 返回 error return掉
@@ -232,10 +233,10 @@ public class BusinessServiceImpl implements BusinessService {
         //计算资源的繁忙度
         businessResourceList.forEach(x -> {
             OperationMonitorEntity operationMonitorEntity = monitorUuidList.get(x.getMonitorId());
-            String monitorType = operationMonitorEntity.getMonitorType();
+            String monitorType = operationMonitorEntity.getLightType();
             double resBusyScore = 0;
             //计算出每个资源的繁忙度
-            if (monitorType.equals(BusinessEnum.MonitorTypeEnum.TOMCAT.value())) {
+            if (monitorType.equals(BusinessEnum.LightTypeEnum.TOMCAT.value())) {
                 List<Double> tomcatConstantW = new ArrayList<>();
                 tomcatConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.TOMCAT.value() + "." +
                         BusinessEnum.BusyQuotaEnum.PROCESSING_PERSEC.value())));
@@ -258,14 +259,14 @@ public class BusinessServiceImpl implements BusinessService {
                 tomcatQuotaValue.add(str2double(threadBusyPercent));
                 resBusyScore = calResourceBusyScore(tomcatConstantW, tomcatQuotaValue, variableA, variableB);
                 //resBusyScore就是这个tomcat资源的繁忙度
-            } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.MYSQL.value())) {
+            } else if (monitorType.equals(BusinessEnum.LightTypeEnum.MYSQL.value())) {
                 String questionRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.MYSQL_QUESTIONSRATE.value());
                 if (null==questionRate){
                     questionRate="0";
                 }
                 resBusyScore = str2double(questionRate);
                 //resBusyScore就是这个mysql资源的繁忙度
-            } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.CVK.value())) {
+            } else if (monitorType.equals(BusinessEnum.LightTypeEnum.CVK.value())) {
                 List<Double> cvkConstantW = new ArrayList<>();
                 cvkConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.CVK.value() + "." +
                         BusinessEnum.BusyQuotaEnum.CPU_PERCENT.value())));
@@ -284,7 +285,7 @@ public class BusinessServiceImpl implements BusinessService {
                 cvkQuotaValue.add(str2double(cvkMemRate));
                 resBusyScore = calResourceBusyScore(cvkConstantW, cvkQuotaValue, variableA, variableB);
                 //resBusyScore就是这个cvk的资源繁忙度
-            } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.VIRTUALMACHINE.value())) {
+            } else if (monitorType.equals(BusinessEnum.LightTypeEnum.VIRTUALMACHINE.value())) {
                 List<Double> vmConstantW = new ArrayList<>();
                 vmConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.VIRTUALMACHINE.value() + "." +
                         BusinessEnum.BusyQuotaEnum.CPU_PERCENT.value())));
@@ -304,7 +305,7 @@ public class BusinessServiceImpl implements BusinessService {
                 resBusyScore = calResourceBusyScore(vmConstantW, vmQuotaValue, variableA, variableB);
                 //resBusyScore就是这个vm的繁忙度
 
-            } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.K8SNODE.value())) {
+            } else if (monitorType.equals(BusinessEnum.LightTypeEnum.K8SNODE.value())) {
                 String k8snCpuRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.K8SNODE_CPU_USAGE.value());
                 if (null==k8snCpuRate){
                     k8snCpuRate="0";
@@ -324,7 +325,7 @@ public class BusinessServiceImpl implements BusinessService {
                 resBusyScore = calResourceBusyScore(k8snConstantW, k8snQuotaValue, variableA, variableB);
                 //resBusyScore就是这个k8snode的繁忙度
 
-            } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.K8SCONTAINER.value())) {
+            } else if (monitorType.equals(BusinessEnum.LightTypeEnum.K8SCONTAINER.value())) {
                 String k8scCpuRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.K8SCONTAINER_CPU_USAGE.value());
                 if (null==k8scCpuRate){
                     k8scCpuRate="0";
@@ -527,6 +528,53 @@ public class BusinessServiceImpl implements BusinessService {
         });
         //将业务的健康度，繁忙度，可用度保存在mysql
         dao.insertBusiness(businessEntity);
+    }
+
+    private List<OperationMonitorEntity> getAllMonitorRecord() {
+        List<OperationMonitorEntity> operationMonitorEntities = new ArrayList<>();
+        List<DBMonitorEntity> dblist = monitorService.getAllDbMonitorEntity();
+        dblist.forEach(x->{
+            OperationMonitorEntity o = new OperationMonitorEntity();
+            BeanUtils.copyProperties(x,o);
+            o.setLightType(BusinessEnum.LightTypeEnum.MYSQL.value());
+            operationMonitorEntities.add(o);
+        });
+        List<TomcatMonitorEntity> tomcatList = monitorService.getAllTomcatMonitorEntity();
+        tomcatList.forEach(x->{
+            OperationMonitorEntity o = new OperationMonitorEntity();
+            BeanUtils.copyProperties(x,o);
+            o.setLightType(BusinessEnum.LightTypeEnum.TOMCAT.value());
+            operationMonitorEntities.add(o);
+        });
+        List<HostMonitorEntity> cvkList = monitorService.getAllHostMonitorEntity();
+        cvkList.forEach(x->{
+            OperationMonitorEntity o = new OperationMonitorEntity();
+            BeanUtils.copyProperties(x,o);
+            o.setLightType(BusinessEnum.LightTypeEnum.CVK.value());
+            operationMonitorEntities.add(o);
+        });
+        List<VmMonitorEntity> vmList = monitorService.getAllVmMonitorEntity();
+        vmList.forEach(x->{
+            OperationMonitorEntity o = new OperationMonitorEntity();
+            BeanUtils.copyProperties(x,o);
+            o.setLightType(BusinessEnum.LightTypeEnum.VIRTUALMACHINE.value());
+            operationMonitorEntities.add(o);
+        });
+        List<K8snodeMonitorEntity> k8snlist = monitorService.getAllK8snodeMonitorEntity();
+        k8snlist.forEach(x->{
+            OperationMonitorEntity o = new OperationMonitorEntity();
+            BeanUtils.copyProperties(x,o);
+            o.setLightType(BusinessEnum.LightTypeEnum.K8SNODE.value());
+            operationMonitorEntities.add(o);
+        });
+        List<K8scontainerMonitorEntity> k8scList = monitorService.getAllK8sContainerMonitorEntity();
+        k8scList.forEach(x->{
+            OperationMonitorEntity o = new OperationMonitorEntity();
+            BeanUtils.copyProperties(x,o);
+            o.setLightType(BusinessEnum.LightTypeEnum.K8SCONTAINER.value());
+            operationMonitorEntities.add(o);
+        });
+        return operationMonitorEntities;
     }
 
     /**

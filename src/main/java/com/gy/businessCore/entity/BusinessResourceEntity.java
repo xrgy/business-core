@@ -35,8 +35,8 @@ public class BusinessResourceEntity {
     @Column(name = "available_score")
     private double available_score;
 
-    @Column(name = "type")
-    private String type;
+    @Column(name = "light_type")
+    private String lightType;
 
 
 
