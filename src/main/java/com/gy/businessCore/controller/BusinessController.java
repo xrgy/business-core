@@ -100,5 +100,11 @@ public class BusinessController {
         service.calculateBusinessScore(businessId);
     }
 
+    @RequestMapping("getBusinessResourceByMonitorUuid")
+    @ResponseBody
+    public String getBusinessResourceByMonitorUuid(String monitorUuid) throws JsonProcessingException {
+        return mapper.writeValueAsString(service.getBusinessResourceByMonitorUuid(monitorUuid));
+    }
+
 
 }

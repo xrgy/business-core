@@ -102,4 +102,12 @@ public class BusinessDaoImpl implements BusinessDao {
                 .getResultList();
     }
 
+    @Override
+    public List<BusinessResourceEntity> getBusinessResourceByMonitorUuid(String monitorUuid) {
+        String sql = "FROM BusinessResourceEntity Where monitorId =:monitorUuid";
+        return em.createQuery(sql, BusinessResourceEntity.class)
+                .setParameter("monitorUuid",monitorUuid)
+                .getResultList();
+    }
+
 }

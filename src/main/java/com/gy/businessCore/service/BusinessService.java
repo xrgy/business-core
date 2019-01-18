@@ -40,4 +40,12 @@ public interface BusinessService {
      * @param businessId
      */
     void calculateBusinessScore(String businessId) throws IOException;
+
+
+    /**
+     * 根据资源uuid获取业务资源实体
+     * @param monitorUuid
+     * @return
+     */
+    List<BusinessResourceEntity> getBusinessResourceByMonitorUuid(String monitorUuid);
 }
