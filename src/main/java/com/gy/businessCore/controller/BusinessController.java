@@ -106,5 +106,10 @@ public class BusinessController {
         return mapper.writeValueAsString(service.getBusinessResourceByMonitorUuid(monitorUuid));
     }
 
+    @RequestMapping("getBusinessNode")
+    @ResponseBody
+    public String getBusinessNode(String uuid) throws JsonProcessingException {
+        return mapper.writeValueAsString(service.getBusinessNode(uuid));
+    }
 
 }

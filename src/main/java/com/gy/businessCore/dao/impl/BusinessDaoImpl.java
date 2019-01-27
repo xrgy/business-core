@@ -110,4 +110,5 @@ public class BusinessDaoImpl implements BusinessDao {
                 .getResultList();
     }
 
+
 }

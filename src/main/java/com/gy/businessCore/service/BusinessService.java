@@ -48,4 +48,11 @@ public interface BusinessService {
      * @return
      */
     List<BusinessResourceEntity> getBusinessResourceByMonitorUuid(String monitorUuid);
+
+    /**
+     * 通过业务id获取业务信息
+     * @param uuid
+     * @return
+     */
+    BusinessEntity getBusinessNode(String uuid);
 }

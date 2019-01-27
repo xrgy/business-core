@@ -535,6 +535,11 @@ public class BusinessServiceImpl implements BusinessService {
         return dao.getBusinessResourceByMonitorUuid(monitorUuid);
     }
 
+    @Override
+    public BusinessEntity getBusinessNode(String uuid) {
+        return dao.getBusinessByUuid(uuid);
+    }
+
     private List<OperationMonitorEntity> getAllMonitorRecord() {
         List<OperationMonitorEntity> operationMonitorEntities = new ArrayList<>();
         List<DBMonitorEntity> dblist = monitorService.getAllDbMonitorEntity();
