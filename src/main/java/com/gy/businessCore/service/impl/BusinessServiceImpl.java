@@ -540,6 +540,15 @@ public class BusinessServiceImpl implements BusinessService {
         return dao.getBusinessByUuid(uuid);
     }
 
+    @Override
+    public PageBean getBusinessListByPage(PageData view) {
+        List<BusinessEntity> list = dao.getBusinessList();
+        PageBean pageBean = new PageBean(view.getPageIndex(),view.getPageSize(),list.size());
+        List<BusinessEntity> mylist = dao.getBusinessListByPage(pageBean.getStartIndex(),view.getPageSize());
+        pageBean.setList(mylist);
+        return pageBean;
+    }
+
     private List<OperationMonitorEntity> getAllMonitorRecord() {
         List<OperationMonitorEntity> operationMonitorEntities = new ArrayList<>();
         List<DBMonitorEntity> dblist = monitorService.getAllDbMonitorEntity();

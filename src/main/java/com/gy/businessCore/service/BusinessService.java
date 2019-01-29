@@ -55,4 +55,11 @@ public interface BusinessService {
      * @return
      */
     BusinessEntity getBusinessNode(String uuid);
+
+    /**
+     * 分页获取business 数据
+     * @param view
+     * @return
+     */
+    PageBean getBusinessListByPage(PageData view);
 }

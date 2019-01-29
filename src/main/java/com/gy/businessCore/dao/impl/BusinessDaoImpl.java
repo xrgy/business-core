@@ -1,14 +1,19 @@
 package com.gy.businessCore.dao.impl;
 
+import com.gy.businessCore.common.EntityAndDTO;
 import com.gy.businessCore.dao.BusinessDao;
 import com.gy.businessCore.entity.*;
+import org.hibernate.SQLQuery;
+import org.hibernate.transform.Transformers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.Query;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by gy on 2018/3/31.
@@ -69,6 +74,21 @@ public class BusinessDaoImpl implements BusinessDao {
         String sql = "FROM BusinessEntity";
         return em.createQuery(sql, BusinessEntity.class)
                 .getResultList();
+    }
+
+    @Override
+    public List<BusinessEntity> getBusinessListByPage(int startIndex, int pageSize) {
+        String sql = "select  * FROM tbl_business";
+        Query query = em.createNativeQuery(sql);
+        //将查询结果集转为Map
+        query.unwrap(SQLQuery.class).setResultTransformer(Transformers.ALIAS_TO_ENTITY_MAP);
+        //设置分页
+        query.setFirstResult(startIndex);
+        query.setMaxResults(pageSize);
+        //获取查询结果集
+        List<Map<String, Object>> rungroupInfo = query.getResultList();
+        List<BusinessEntity> rungrouppushList = EntityAndDTO.mapConvertToBean(rungroupInfo, BusinessEntity.class);
+        return rungrouppushList;
     }
 
     @Override

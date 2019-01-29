@@ -4,10 +4,7 @@ package com.gy.businessCore.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.gy.businessCore.entity.BusinessResourceEntity;
-import com.gy.businessCore.entity.InfluxData;
-import com.gy.businessCore.entity.TestEntity;
-import com.gy.businessCore.entity.WeaveContainerImage;
+import com.gy.businessCore.entity.*;
 import com.gy.businessCore.service.BusinessService;
 import com.gy.businessCore.service.InfluxService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -112,4 +109,10 @@ public class BusinessController {
         return mapper.writeValueAsString(service.getBusinessNode(uuid));
     }
 
+    @RequestMapping("getBusinessByPage")
+    @ResponseBody
+    public String getBusinessListByPage(@RequestBody String data) throws IOException {
+        PageData view = mapper.readValue(data, PageData.class);
+        return mapper.writeValueAsString(service.getBusinessListByPage(view));
+    }
 }

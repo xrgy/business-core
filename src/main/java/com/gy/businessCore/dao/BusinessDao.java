@@ -21,6 +21,8 @@ public interface BusinessDao {
 
     public List<BusinessEntity> getBusinessList();
 
+    public List<BusinessEntity> getBusinessListByPage(int startIndex,int pageSize);
+
     public BusinessEntity getBusinessByUuid(String uuid);
 
     boolean insertBusinessResource(BusinessResourceEntity entity);
