@@ -41,7 +41,12 @@ public interface BusinessService {
      */
     void calculateBusinessScore(String businessId) throws IOException;
 
-
+    /**
+     * 根据业务Id获取该业务中的资源
+     * @param businessId
+     * @return
+     */
+    List<BusinessResourceEntity> getBusinessResourcesByBusinessId(String businessId);
     /**
      * 根据资源uuid获取业务资源实体
      * @param monitorUuid
@@ -62,4 +67,6 @@ public interface BusinessService {
      * @return
      */
     PageBean getBusinessListByPage(PageData view);
+
+    boolean delBusinessResource(List<BusinessResourceEntity> ress);
 }

@@ -224,8 +224,8 @@ public class BusinessServiceImpl implements BusinessService {
         Map<String, Integer> typeNumMap = new HashMap<>();
         //读变权的参数 a，b
         Properties properties = new Properties();
-        BufferedReader bufferedReader = new BufferedReader(new FileReader("C:/Users/gy/IdeaProjects/business-core/src/main/resources/config/busyweight.properties"));
-//        BufferedReader bufferedReader = new BufferedReader(new FileReader("/busyweight.properties"));
+//        BufferedReader bufferedReader = new BufferedReader(new FileReader("C:/Users/gy/IdeaProjects/business-core/src/main/resources/config/busyweight.properties"));
+        BufferedReader bufferedReader = new BufferedReader(new FileReader("/busyweight.properties"));
         properties.load(bufferedReader);
         Double variableA = str2double(properties.getProperty(BusinessEnum.VariableWeightParamEnum.VARIABLE_A.value()));
         Double variableB = str2double(properties.getProperty(BusinessEnum.VariableWeightParamEnum.VARIABLE_B.value()));
@@ -432,8 +432,8 @@ public class BusinessServiceImpl implements BusinessService {
         //业务健康度
         //先获取资源的monitorstauts 如果为0则该资源的健康度为0
         Properties propertiesHealth = new Properties();
-        BufferedReader bufferedReaderHealth = new BufferedReader(new FileReader("C:/Users/gy/IdeaProjects/business-core/src/main/resources/config/healthRatio.properties"));
-//        BufferedReader bufferedReader = new BufferedReader(new FileReader("/healthRatio.properties"));
+//        BufferedReader bufferedReaderHealth = new BufferedReader(new FileReader("C:/Users/gy/IdeaProjects/business-core/src/main/resources/config/healthRatio.properties"));
+        BufferedReader bufferedReaderHealth = new BufferedReader(new FileReader("/healthRatio.properties"));
         propertiesHealth.load(bufferedReaderHealth);
         Double criticalRatio = str2double(propertiesHealth.getProperty(BusinessEnum.AlertTypeEnum.CRITICAL.value()));
         Double majorRatio = str2double(propertiesHealth.getProperty(BusinessEnum.AlertTypeEnum.MAJOR.value()));
@@ -531,6 +531,11 @@ public class BusinessServiceImpl implements BusinessService {
     }
 
     @Override
+    public List<BusinessResourceEntity> getBusinessResourcesByBusinessId(String businessId) {
+        return dao.getBusinessResourcesByBusinessId(businessId);
+    }
+
+    @Override
     public List<BusinessResourceEntity> getBusinessResourceByMonitorUuid(String monitorUuid) {
         return dao.getBusinessResourceByMonitorUuid(monitorUuid);
     }
@@ -547,6 +552,18 @@ public class BusinessServiceImpl implements BusinessService {
         List<BusinessEntity> mylist = dao.getBusinessListByPage(pageBean.getStartIndex(),view.getPageSize());
         pageBean.setList(mylist);
         return pageBean;
+    }
+
+    @Override
+    public boolean delBusinessResource(List<BusinessResourceEntity> ress) {
+        try {
+            ress.forEach(x -> {
+                dao.delBusinessResource(x);
+            });
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private List<OperationMonitorEntity> getAllMonitorRecord() {

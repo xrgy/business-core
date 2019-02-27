@@ -57,8 +57,8 @@ public class MonitorServiceImpl implements MonitorService {
     private String monitorPrefix(){
         String ip = "";
         try {
-            ip="127.0.0.1";
-//            ip = EtcdUtil.getClusterIpByServiceName("monitor-core-service");
+//            ip="127.0.0.1";
+            ip = EtcdUtil.getClusterIpByServiceName("monitor-core-service");
         } catch (Exception e) {
             e.printStackTrace();
         }

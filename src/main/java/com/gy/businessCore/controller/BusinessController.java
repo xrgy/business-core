@@ -73,6 +73,11 @@ public class BusinessController {
         return service.insertBusinessResourceList(resourceEntityList);
 
     }
+    @RequestMapping("getBusinessResourcesByBusinessId")
+    @ResponseBody
+    public String getBusinessResourcesByBusinessId(String businessId) throws JsonProcessingException {
+        return mapper.writeValueAsString(service.getBusinessResourcesByBusinessId(businessId));
+    }
 
     @RequestMapping("insertResourceScore")
     @ResponseBody
@@ -114,5 +119,12 @@ public class BusinessController {
     public String getBusinessListByPage(@RequestBody String data) throws IOException {
         PageData view = mapper.readValue(data, PageData.class);
         return mapper.writeValueAsString(service.getBusinessListByPage(view));
+    }
+
+    @RequestMapping("delBusinessResource")
+    @ResponseBody
+    public boolean delBusinessResource(@RequestBody String data) throws IOException {
+        List<BusinessResourceEntity> ress = mapper.readValue(data,new TypeReference<List<BusinessResourceEntity>>(){});
+        return service.delBusinessResource(ress);
     }
 }

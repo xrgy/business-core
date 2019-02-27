@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.gy.businessCore.entity.monitor.OperationMonitorEntity;
 import com.gy.businessCore.service.AlertService;
 import com.gy.businessCore.service.MonitorService;
+import com.gy.businessCore.utils.EtcdUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
@@ -39,8 +40,8 @@ public class AlertServiceImpl implements AlertService {
     private String alertPrefix(){
         String ip = "";
         try {
-            ip="127.0.0.1";
-//            ip = EtcdUtil.getClusterIpByServiceName("alert-coll-service");
+//            ip="127.0.0.1";
+            ip = EtcdUtil.getClusterIpByServiceName("alert-coll-service");
         } catch (Exception e) {
             e.printStackTrace();
         }

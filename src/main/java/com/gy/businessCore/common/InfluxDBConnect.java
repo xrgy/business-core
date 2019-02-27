@@ -1,5 +1,6 @@
 package com.gy.businessCore.common;
 
+import com.gy.businessCore.utils.ProperUtil;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Point;
@@ -30,8 +31,13 @@ public class InfluxDBConnect {
         influxDbName =System.getenv("INFLUXDB_DATABASE_NAME");
         String []str =dbEndpoint.split(":");
 
-//        String ip = ProperUtil.getClusterIpByServiceName(str[0]);
-        String ip="47.94.157.199";
+        String ip = null;
+        try {
+            ip = ProperUtil.getClusterIpByServiceName(str[0]);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+//        String ip="47.94.157.199";
         System.out.println(ip);
         String openurl = HTTP+ip+":"+str[1];
         if(influxDB == null){

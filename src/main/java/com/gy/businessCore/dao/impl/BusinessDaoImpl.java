@@ -130,5 +130,15 @@ public class BusinessDaoImpl implements BusinessDao {
                 .getResultList();
     }
 
+    @Override
+    public boolean delBusinessResource(BusinessResourceEntity x) {
+        String sql = "DELETE FROM BusinessResourceEntity WHERE businessUuid =:businessId AND monitorId =:monitorUuid";
+        int res = em.createQuery(sql)
+                .setParameter("businessId",x.getBusinessUuid())
+                .setParameter("monitorUuid", x.getMonitorId())
+                .executeUpdate();
+        return res > 0;
+    }
+
 
 }
