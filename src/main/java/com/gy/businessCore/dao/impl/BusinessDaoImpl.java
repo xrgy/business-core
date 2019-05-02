@@ -6,6 +6,7 @@ import com.gy.businessCore.entity.*;
 import org.hibernate.SQLQuery;
 import org.hibernate.transform.Transformers;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -131,11 +132,35 @@ public class BusinessDaoImpl implements BusinessDao {
     }
 
     @Override
+    @Transactional
+    @Modifying
     public boolean delBusinessResource(BusinessResourceEntity x) {
         String sql = "DELETE FROM BusinessResourceEntity WHERE businessUuid =:businessId AND monitorId =:monitorUuid";
         int res = em.createQuery(sql)
                 .setParameter("businessId",x.getBusinessUuid())
                 .setParameter("monitorUuid", x.getMonitorId())
+                .executeUpdate();
+        return res > 0;
+    }
+
+    @Override
+    @Transactional
+    @Modifying
+    public boolean delBusinessResourceByBusinessId(String uuid) {
+        String sql = "DELETE FROM BusinessResourceEntity WHERE businessUuid =:businessId";
+        int res = em.createQuery(sql)
+                .setParameter("businessId",uuid)
+                .executeUpdate();
+        return res > 0;
+    }
+
+    @Override
+    @Transactional
+    @Modifying
+    public boolean delBusinessByUuid(String uuid) {
+        String sql = "DELETE FROM BusinessEntity WHERE uuid =:uuid";
+        int res = em.createQuery(sql)
+                .setParameter("uuid",uuid)
                 .executeUpdate();
         return res > 0;
     }

@@ -9,16 +9,11 @@ import com.gy.businessCore.service.*;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.w3c.dom.ls.LSInput;
 
-import javax.print.Doc;
-import javax.swing.text.html.Option;
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.Buffer;
 import java.util.*;
 
 
@@ -61,9 +56,16 @@ public class BusinessServiceImpl implements BusinessService {
 //        List<Map<String, List<WeaveContainerImage>>> results = new ArrayList<>();
         WeaveContainerImageInfo resultInfo = new WeaveContainerImageInfo();
         Map<String, List<WeaveContainerImage>> map = new HashMap<>();
-        weaveurls.forEach(url -> {
+        for (int i = 0; i < weaveurls.size(); i++) {
+            String url = weaveurls.get(i);
+
             List<WeaveContainerImage> mapImage = new ArrayList<>();
-            WeaveApi api = weavescopeService.getWeaveApi(url);
+            WeaveApi api = null;
+            try {
+                api = weavescopeService.getWeaveApi(url);
+            } catch (Exception e) {
+                continue;
+            }
             List<BusinessEntity> existBusiness = null;
             if (allCluster.contains(api.getId())) {
                 existBusiness = dao.getBusinessByCluster(api.getId());
@@ -76,107 +78,136 @@ public class BusinessServiceImpl implements BusinessService {
             Map<String, String> container2imageId = new HashMap<>();
             Map<String, String> imageId2name = new HashMap<>();
             Map<String, String> containerimageId2uuid = new HashMap<>();
-            imageNodes.getNodes().forEach((key, value) -> {
-                if (key.contains(";") && key.substring(key.lastIndexOf(";") + 1, key.length()).equals("<container>")) {
-                    String contaienrid = key.substring(0, key.lastIndexOf(";"));
-                    Optional<WeaveContainerImageTable> tableOpt = value.getTables().stream()
-                            .filter(table -> table.getId().equals(BusinessEnum.WeaveEnum.IMAGE_TABLE.value())).findFirst();
-                    if (tableOpt.isPresent()) {
-                        tableOpt.get().getRows().forEach(x -> {
-                            if (x.getId().equals(BusinessEnum.WeaveEnum.IMAGE_ID.value())) {
-                                container2imageId.put(contaienrid, x.getEntries().getValue());
+            if (null != imageNodes && null!=imageNodes.getNodes() && imageNodes.getNodes().size() > 0) {
+                imageNodes.getNodes().forEach((key, value) -> {
+                    if (key.contains(";") && key.substring(key.lastIndexOf(";") + 1, key.length()).equals("<container>")) {
+                        String contaienrid = key.substring(0, key.lastIndexOf(";"));
+                        Optional<WeaveContainerImageTable> tableOpt = value.getTables().stream()
+                                .filter(table -> table.getId().equals(BusinessEnum.WeaveEnum.IMAGE_TABLE.value())).findFirst();
+                        if (tableOpt.isPresent()) {
+                            tableOpt.get().getRows().forEach(x -> {
+                                if (x.getId().equals(BusinessEnum.WeaveEnum.IMAGE_ID.value())) {
+                                    container2imageId.put(contaienrid, x.getEntries().getValue());
+                                }
+                            });
+                            Optional<WeaveContainerImageTableRows> imageNameF = tableOpt.get().getRows().stream().filter(x -> x.getId().equals(BusinessEnum.WeaveEnum.IMAGE_NAME.value())).findFirst();
+                            Optional<WeaveContainerImageTableRows> imageNameS = tableOpt.get().getRows().stream().filter(x -> x.getId().equals(BusinessEnum.WeaveEnum.IMAGE_TAG.value())).findFirst();
+
+                            if (imageNameF.isPresent() && imageNameS.isPresent() && container2imageId.containsKey(contaienrid)) {
+                                imageId2name.put(container2imageId.get(contaienrid),
+                                        transfromToImageName(imageNameF.get().getEntries().getValue(), imageNameS.get().getEntries().getValue()));
                             }
-                        });
-                        tableOpt.get().getRows().forEach(x -> {
-                            if (x.getId().equals(BusinessEnum.WeaveEnum.IMAGE_NAME.value()) && container2imageId.containsKey(contaienrid)) {
-                                imageId2name.put(container2imageId.get(contaienrid), x.getEntries().getValue());
-                            }
-                        });
+                        }
                     }
-
-                }
-
-            });
+                });
+            }
 
             List<BusinessEntity> finalExistBusiness = existBusiness;
             Map<String, List<String>> busuuid2adj = new HashMap<>();
-            imageNodes.getNodes().forEach((key, value) -> {
-                if (key.contains(";") && key.substring(key.lastIndexOf(";") + 1, key.length()).equals("<container>")) {
-                    //去除伪节点 //pseudo:uncontained:master
-                    String cid = key.substring(0, key.lastIndexOf(";"));
-                    //不能包含weaveworks的，不能包含私有仓库的；labelMinor>10认为是基础镜像 "labelMinor": "16 containers",
+            if (null != imageNodes && null!=imageNodes.getNodes() && imageNodes.getNodes().size() > 0) {
+                WeaveApi finalApi1 = api;
+                imageNodes.getNodes().forEach((key, value) -> {
+                    if (key.contains(";") && key.substring(key.lastIndexOf(";") + 1, key.length()).equals("<container>")) {
+                        //去除伪节点 //pseudo:uncontained:master
+                        String cid = key.substring(0, key.lastIndexOf(";"));
+                        //不能包含weaveworks的，不能包含私有仓库的；labelMinor>10认为是基础镜像 "labelMinor": "16 containers",
 //                        int minorCount = Integer.parseInt(value.getLabelMinor().split(" ")[0]);
 
-                    if (container2imageId.containsKey(cid)) {
-                        String imid = container2imageId.get(cid);
-                        if (imageId2name.containsKey(imid)) {
-                            String name = imageId2name.get(imid);
-                            if (!name.contains("weaveworks") && !name.contains("docker.io/registry")) {
-                                WeaveContainerImage myImage = new WeaveContainerImage();
-                                Optional<BusinessEntity> exBusiness = finalExistBusiness.stream()
-                                        .filter(x -> x.getImage().equals(imid) && x.getCluster().equals(api.getId())).findFirst();
-                                String tmpid = "";
-                                if (exBusiness.isPresent()) {
-                                    //在数据库中存在，而且不在mapimage中
-                                    //不用插入该微服务 但是还是要给拓扑返回去
-                                    tmpid = exBusiness.get().getUuid();
-                                    myImage.setId(tmpid);
-                                } else {
-                                    BusinessEntity entity = new BusinessEntity();
-                                    tmpid = UUID.randomUUID().toString();
-                                    entity.setUuid(tmpid);
-                                    entity.setName(name);
-                                    entity.setImage(imid);
-                                    entity.setCluster(api.getId());
-                                    dao.insertBusiness(entity);
-                                    myImage.setId(tmpid);
-                                    finalExistBusiness.add(entity);
-                                }
-                                String finalTmpid = tmpid;
-                                if (busuuid2adj.containsKey(finalTmpid) && value.getAdjacency() != null && value.getAdjacency().size() > 0) {
-                                    List<String> add = busuuid2adj.get(finalTmpid);
-                                    add.addAll(value.getAdjacency());
-                                    busuuid2adj.put(finalTmpid, add);
-                                } else if (!busuuid2adj.containsKey(imid) && value.getAdjacency() != null && value.getAdjacency().size() > 0) {
-                                    busuuid2adj.put(finalTmpid, value.getAdjacency());
-                                }
-                                myImage.setName(name);
+                        if (container2imageId.containsKey(cid)) {
+                            String imid = container2imageId.get(cid);
+                            if (imageId2name.containsKey(imid)) {
+                                String name = imageId2name.get(imid);
+                                if (!name.contains("weaveworks") && !name.contains("docker.io/registry") && !name.contains("tcpdump")) {
+                                    WeaveContainerImage myImage = new WeaveContainerImage();
+                                    WeaveApi finalApi = finalApi1;
+                                    Optional<BusinessEntity> exBusiness = finalExistBusiness.stream()
+                                            .filter(x -> x.getImage().equals(imid) && x.getCluster().equals(finalApi.getId())).findFirst();
+                                    String tmpid = "";
+                                    if (exBusiness.isPresent()) {
+                                        //在数据库中存在，而且不在mapimage中
+                                        //不用插入该微服务 但是还是要给拓扑返回去
+                                        tmpid = exBusiness.get().getUuid();
+                                        myImage.setId(tmpid);
+                                    } else {
+                                        BusinessEntity entity = new BusinessEntity();
+                                        tmpid = UUID.randomUUID().toString();
+                                        entity.setUuid(tmpid);
+                                        entity.setName(name);
+                                        entity.setBusy_score(-1);
+                                        entity.setAvailable_score(-1);
+                                        entity.setHealth_score(-1);
+                                        entity.setImage(imid);
+                                        entity.setCluster(finalApi1.getId());
+                                        dao.insertBusiness(entity);
+                                        myImage.setId(tmpid);
+                                        finalExistBusiness.add(entity);
+                                    }
+                                    String finalTmpid = tmpid;
+                                    if (busuuid2adj.containsKey(finalTmpid) && value.getAdjacency() != null && value.getAdjacency().size() > 0) {
+                                        List<String> add = busuuid2adj.get(finalTmpid);
+                                        add.addAll(value.getAdjacency());
+                                        busuuid2adj.put(finalTmpid, add);
+                                    } else if (!busuuid2adj.containsKey(imid) && value.getAdjacency() != null && value.getAdjacency().size() > 0) {
+                                        busuuid2adj.put(finalTmpid, value.getAdjacency());
+                                    }
+                                    myImage.setName(name);
 //                                myImage.setAdjacency(value.getAdjacency());
 
-                                Optional<WeaveContainerImage> mm = mapImage.stream().filter(x -> x.getId().equals(finalTmpid)).findFirst();
-                                if (!mm.isPresent()) {
-                                    mapImage.add(myImage);
-                                }
-                                containerimageId2uuid.put(cid + "-" + imid, finalTmpid);
+                                    Optional<WeaveContainerImage> mm = mapImage.stream().filter(x -> x.getId().equals(finalTmpid)).findFirst();
+                                    if (!mm.isPresent()) {
+                                        mapImage.add(myImage);
+                                    }
+                                    containerimageId2uuid.put(cid + "-" + imid, finalTmpid);
 
+                                }
                             }
                         }
-                    }
 
-                }
-            });
-            mapImage.forEach(image -> {
-                if (busuuid2adj.containsKey(image.getId())) {
-                    image.setAdjacency(busuuid2adj.get(image.getId()));
-                }
-            });
-            mapImage.forEach(image -> {
-                List<String> adjs = new ArrayList<>();
-                if (null != image.getAdjacency()) {
-                    image.getAdjacency().forEach(adj -> {
-                        if (adj.contains(";")) {
-                            String conid = getContainerImageRealName(adj);
-                            String imnid = container2imageId.get(conid);
-                            adjs.add(containerimageId2uuid.get(conid + "-" + imnid));
-                        }
-                    });
-                    image.setAdjacency(adjs);
-                }
-            });
+                    }
+                });
+            }
+            if (mapImage.size() > 0) {
+                mapImage.forEach(image -> {
+                    if (busuuid2adj.containsKey(image.getId())) {
+                        image.setAdjacency(busuuid2adj.get(image.getId()));
+                    }
+                });
+            }
+            if (mapImage.size() > 0) {
+                mapImage.forEach(image -> {
+                    List<String> adjs = new ArrayList<>();
+                    if (null != image.getAdjacency()) {
+                        image.getAdjacency().forEach(adj -> {
+                            if (adj.contains(";")) {
+                                String conid = getContainerImageRealName(adj);
+                                String imnid = container2imageId.get(conid);
+                                adjs.add(containerimageId2uuid.get(conid + "-" + imnid));
+                            }
+                        });
+                        image.setAdjacency(adjs);
+                    }
+                });
+            }
             map.put(api.getId(), mapImage);
-        });
+        }
         resultInfo.setNodes(map);
         return resultInfo;
+    }
+
+    private String transfromToImageName(String imageNameF, String imageNameS) {
+        String str = imageNameF.concat(":").concat(imageNameS);
+        String aa[] = str.split(":");
+        if (aa.length > 2) {
+            String b = aa[aa.length - 2];
+            int t = b.indexOf("/");
+            if (t > 0) {
+                return b.substring(t + 1);
+            } else {
+                return b;
+            }
+        } else {
+            return imageNameF;
+        }
     }
 
     @Override
@@ -205,7 +236,7 @@ public class BusinessServiceImpl implements BusinessService {
     public void calculateBusinessScore(String businessId) throws IOException {
         List<BusinessResourceEntity> businessResourceList = dao.getBusinessResourcesByBusinessId(businessId);
         BusinessEntity businessEntity = dao.getBusinessByUuid(businessId);
-        if (null == businessEntity){
+        if (null == businessEntity) {
             return;
         }
         if (null == businessResourceList || businessResourceList.size() <= 0) {
@@ -224,8 +255,8 @@ public class BusinessServiceImpl implements BusinessService {
         Map<String, Integer> typeNumMap = new HashMap<>();
         //读变权的参数 a，b
         Properties properties = new Properties();
-//        BufferedReader bufferedReader = new BufferedReader(new FileReader("C:/Users/gy/IdeaProjects/business-core/src/main/resources/config/busyweight.properties"));
-        BufferedReader bufferedReader = new BufferedReader(new FileReader("/busyweight.properties"));
+        BufferedReader bufferedReader = new BufferedReader(new FileReader("C:/Users/gy/IdeaProjects/business-core/src/main/resources/config/busyweight.properties"));
+//        BufferedReader bufferedReader = new BufferedReader(new FileReader("/busyweight.properties"));
         properties.load(bufferedReader);
         Double variableA = str2double(properties.getProperty(BusinessEnum.VariableWeightParamEnum.VARIABLE_A.value()));
         Double variableB = str2double(properties.getProperty(BusinessEnum.VariableWeightParamEnum.VARIABLE_B.value()));
@@ -233,6 +264,9 @@ public class BusinessServiceImpl implements BusinessService {
         //计算资源的繁忙度
         businessResourceList.forEach(x -> {
             OperationMonitorEntity operationMonitorEntity = monitorUuidList.get(x.getMonitorId());
+            if (operationMonitorEntity == null) {
+                String monitorType = operationMonitorEntity.getLightType();
+            }
             String monitorType = operationMonitorEntity.getLightType();
             double resBusyScore = 0;
             //计算出每个资源的繁忙度
@@ -243,12 +277,12 @@ public class BusinessServiceImpl implements BusinessService {
                 tomcatConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.TOMCAT.value() + "." +
                         BusinessEnum.BusyQuotaEnum.THREAD_BUSY_PERCENT.value())));
                 String persec = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.TOMCAT_PROCESSINGPERSEC.value());
-                if (null==persec){
-                    persec="0";
+                if (null == persec) {
+                    persec = "0";
                 }
                 String threadBusyPercent = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.TOMCAT_THREADSBUSYPERCENT.value());
-                if (null==threadBusyPercent){
-                    threadBusyPercent="0";
+                if (null == threadBusyPercent) {
+                    threadBusyPercent = "0";
                 }
                 List<Double> tomcatQuotaValue = new ArrayList<>();
                 int min = str2int(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.TOMCAT.value() + "." +
@@ -261,10 +295,16 @@ public class BusinessServiceImpl implements BusinessService {
                 //resBusyScore就是这个tomcat资源的繁忙度
             } else if (monitorType.equals(BusinessEnum.LightTypeEnum.MYSQL.value())) {
                 String questionRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.MYSQL_QUESTIONSRATE.value());
-                if (null==questionRate){
-                    questionRate="0";
+                if (null == questionRate) {
+                    questionRate = "0";
                 }
-                resBusyScore = str2double(questionRate);
+                //todo 也要化量纲
+                int min = str2int(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.MYSQL.value() + "." +
+                        BusinessEnum.BusyQuotaEnum.MYSQL_QUESTIONS_RATE.value() + ".min"));
+                int max = str2int(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.MYSQL.value() + "." +
+                        BusinessEnum.BusyQuotaEnum.MYSQL_QUESTIONS_RATE.value() + ".max"));
+                resBusyScore = valueNormaliz(min, max, str2double(questionRate));
+//                resBusyScore = str2double(questionRate);
                 //resBusyScore就是这个mysql资源的繁忙度
             } else if (monitorType.equals(BusinessEnum.LightTypeEnum.CVK.value())) {
                 List<Double> cvkConstantW = new ArrayList<>();
@@ -273,12 +313,12 @@ public class BusinessServiceImpl implements BusinessService {
                 cvkConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.CVK.value() + "." +
                         BusinessEnum.BusyQuotaEnum.MEMORY_PERCENT.value())));
                 String cvkCpuRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.CVK_CPU_USAGE.value());
-                if (null==cvkCpuRate){
-                    cvkCpuRate="0";
+                if (null == cvkCpuRate) {
+                    cvkCpuRate = "0";
                 }
                 String cvkMemRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.CVK_MEM_USAGE.value());
-                if (null==cvkMemRate){
-                    cvkMemRate="0";
+                if (null == cvkMemRate) {
+                    cvkMemRate = "0";
                 }
                 List<Double> cvkQuotaValue = new ArrayList<>();
                 cvkQuotaValue.add(str2double(cvkCpuRate));
@@ -292,12 +332,12 @@ public class BusinessServiceImpl implements BusinessService {
                 vmConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.VIRTUALMACHINE.value() + "." +
                         BusinessEnum.BusyQuotaEnum.MEMORY_PERCENT.value())));
                 String vmCpuRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.VM_CPU_USAGE.value());
-                if (null==vmCpuRate){
-                    vmCpuRate="0";
+                if (null == vmCpuRate) {
+                    vmCpuRate = "0";
                 }
                 String vmMemRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.VM_MEM_USAGE.value());
-                if (null==vmMemRate){
-                    vmMemRate="0";
+                if (null == vmMemRate) {
+                    vmMemRate = "0";
                 }
                 List<Double> vmQuotaValue = new ArrayList<>();
                 vmQuotaValue.add(str2double(vmCpuRate));
@@ -307,12 +347,12 @@ public class BusinessServiceImpl implements BusinessService {
 
             } else if (monitorType.equals(BusinessEnum.LightTypeEnum.K8SNODE.value())) {
                 String k8snCpuRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.K8SNODE_CPU_USAGE.value());
-                if (null==k8snCpuRate){
-                    k8snCpuRate="0";
+                if (null == k8snCpuRate) {
+                    k8snCpuRate = "0";
                 }
                 String k8snMemRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.K8SNODE_MEM_USAGE.value());
-                if (null==k8snMemRate){
-                    k8snMemRate="0";
+                if (null == k8snMemRate) {
+                    k8snMemRate = "0";
                 }
                 List<Double> k8snConstantW = new ArrayList<>();
                 k8snConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.K8SNODE.value() + "." +
@@ -327,12 +367,12 @@ public class BusinessServiceImpl implements BusinessService {
 
             } else if (monitorType.equals(BusinessEnum.LightTypeEnum.K8SCONTAINER.value())) {
                 String k8scCpuRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.K8SCONTAINER_CPU_USAGE.value());
-                if (null==k8scCpuRate){
-                    k8scCpuRate="0";
+                if (null == k8scCpuRate) {
+                    k8scCpuRate = "0";
                 }
                 String k8scMemRate = monitorService.getQuotaValue(x.getMonitorId(), BusinessEnum.QuotaEnum.K8SCONTAINER_MEM_USAGE.value());
-                if (null==k8scMemRate){
-                    k8scMemRate="0";
+                if (null == k8scMemRate) {
+                    k8scMemRate = "0";
                 }
                 List<Double> k8scConstantW = new ArrayList<>();
                 k8scConstantW.add(str2double(properties.getProperty(BusinessEnum.BusyWeightTypeEnum.K8SCONTAINER.value() + "." +
@@ -356,7 +396,7 @@ public class BusinessServiceImpl implements BusinessService {
         //计算业务繁忙度
         Map<String, Double> resWeightMap = null;
         Map<String, Double> typeWeighMap = new HashMap<>();
-        if (typeNumMap.containsKey(BusinessEnum.MonitorTypeEnum.MYSQL.value()) && typeNumMap.containsKey(BusinessEnum.MonitorTypeEnum.TOMCAT.value())) {
+        if (typeNumMap.containsKey(BusinessEnum.LightTypeEnum.MYSQL.value()) && typeNumMap.containsKey(BusinessEnum.LightTypeEnum.TOMCAT.value())) {
             //包含tomcat和mysql 情况四 situationWithBoth
             Double k8snWe4 = str2double(properties.getProperty(BusinessEnum.ResourceWeightEnum.SITUATION_WITH_BOTH.value() + "." +
                     BusinessEnum.BusyWeightTypeEnum.K8SNODE.value()));
@@ -370,13 +410,13 @@ public class BusinessServiceImpl implements BusinessService {
                     BusinessEnum.BusyWeightTypeEnum.TOMCAT.value()));
             Double sqlWe4 = str2double(properties.getProperty(BusinessEnum.ResourceWeightEnum.SITUATION_WITH_BOTH.value() + "." +
                     BusinessEnum.BusyWeightTypeEnum.MYSQL.value()));
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.K8SNODE.value(), k8snWe4);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.K8SCONTAINER.value(), k8scWe4);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.CVK.value(), cvkWe4);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.VIRTUALMACHINE.value(), vmWe4);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.TOMCAT.value(), tomWe4);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.MYSQL.value(), sqlWe4);
-        } else if (typeNumMap.containsKey(BusinessEnum.MonitorTypeEnum.MYSQL.value())) {
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.K8SNODE.value(), k8snWe4);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.K8SCONTAINER.value(), k8scWe4);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.CVK.value(), cvkWe4);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.VIRTUALMACHINE.value(), vmWe4);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.TOMCAT.value(), tomWe4);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.MYSQL.value(), sqlWe4);
+        } else if (typeNumMap.containsKey(BusinessEnum.LightTypeEnum.MYSQL.value())) {
             //只包含mysql 情况二 situationWithMySQL
             Double k8snWe2 = str2double(properties.getProperty(BusinessEnum.ResourceWeightEnum.SITUATION_WITH_MYSQL.value() + "." +
                     BusinessEnum.BusyWeightTypeEnum.K8SNODE.value()));
@@ -388,12 +428,12 @@ public class BusinessServiceImpl implements BusinessService {
                     BusinessEnum.BusyWeightTypeEnum.VIRTUALMACHINE.value()));
             Double sqlWe2 = str2double(properties.getProperty(BusinessEnum.ResourceWeightEnum.SITUATION_WITH_MYSQL.value() + "." +
                     BusinessEnum.BusyWeightTypeEnum.MYSQL.value()));
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.K8SNODE.value(), k8snWe2);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.K8SCONTAINER.value(), k8scWe2);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.CVK.value(), cvkWe2);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.VIRTUALMACHINE.value(), vmWe2);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.MYSQL.value(), sqlWe2);
-        } else if (typeNumMap.containsKey(BusinessEnum.MonitorTypeEnum.TOMCAT.value())) {
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.K8SNODE.value(), k8snWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.K8SCONTAINER.value(), k8scWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.CVK.value(), cvkWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.VIRTUALMACHINE.value(), vmWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.MYSQL.value(), sqlWe2);
+        } else if (typeNumMap.containsKey(BusinessEnum.LightTypeEnum.TOMCAT.value())) {
             //只包含tomcat 情况三 situationWithTomcat
             Double k8snWe2 = str2double(properties.getProperty(BusinessEnum.ResourceWeightEnum.SITUATION__WITH_TOMCAT.value() + "." +
                     BusinessEnum.BusyWeightTypeEnum.K8SNODE.value()));
@@ -405,11 +445,11 @@ public class BusinessServiceImpl implements BusinessService {
                     BusinessEnum.BusyWeightTypeEnum.VIRTUALMACHINE.value()));
             Double tomWe2 = str2double(properties.getProperty(BusinessEnum.ResourceWeightEnum.SITUATION__WITH_TOMCAT.value() + "." +
                     BusinessEnum.BusyWeightTypeEnum.TOMCAT.value()));
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.K8SNODE.value(), k8snWe2);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.K8SCONTAINER.value(), k8scWe2);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.CVK.value(), cvkWe2);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.VIRTUALMACHINE.value(), vmWe2);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.TOMCAT.value(), tomWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.K8SNODE.value(), k8snWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.K8SCONTAINER.value(), k8scWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.CVK.value(), cvkWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.VIRTUALMACHINE.value(), vmWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.TOMCAT.value(), tomWe2);
         } else {
             //情况一 situationOne 只有 虚拟化和k8s
             Double k8snWe2 = str2double(properties.getProperty(BusinessEnum.ResourceWeightEnum.SITUATION_ONE.value() + "." +
@@ -420,20 +460,20 @@ public class BusinessServiceImpl implements BusinessService {
                     BusinessEnum.BusyWeightTypeEnum.CVK.value()));
             Double vmWe2 = str2double(properties.getProperty(BusinessEnum.ResourceWeightEnum.SITUATION_ONE.value() + "." +
                     BusinessEnum.BusyWeightTypeEnum.VIRTUALMACHINE.value()));
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.K8SNODE.value(), k8snWe2);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.K8SCONTAINER.value(), k8scWe2);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.CVK.value(), cvkWe2);
-            typeWeighMap.put(BusinessEnum.MonitorTypeEnum.VIRTUALMACHINE.value(), vmWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.K8SNODE.value(), k8snWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.K8SCONTAINER.value(), k8scWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.CVK.value(), cvkWe2);
+            typeWeighMap.put(BusinessEnum.LightTypeEnum.VIRTUALMACHINE.value(), vmWe2);
         }
         resWeightMap = calResWeight(businessResourceList, monitorUuidList, typeWeighMap);
         //业务繁忙度
         Double busyscore = calBussinessBusyScore(resourceBusyScoreMap, resWeightMap);
-        businessEntity.setBusy_score(double2float2(busyscore));
+        businessEntity.setBusy_score(double2int(busyscore));
         //业务健康度
         //先获取资源的monitorstauts 如果为0则该资源的健康度为0
         Properties propertiesHealth = new Properties();
-//        BufferedReader bufferedReaderHealth = new BufferedReader(new FileReader("C:/Users/gy/IdeaProjects/business-core/src/main/resources/config/healthRatio.properties"));
-        BufferedReader bufferedReaderHealth = new BufferedReader(new FileReader("/healthRatio.properties"));
+        BufferedReader bufferedReaderHealth = new BufferedReader(new FileReader("C:/Users/gy/IdeaProjects/business-core/src/main/resources/config/healthRatio.properties"));
+//        BufferedReader bufferedReaderHealth = new BufferedReader(new FileReader("/healthRatio.properties"));
         propertiesHealth.load(bufferedReaderHealth);
         Double criticalRatio = str2double(propertiesHealth.getProperty(BusinessEnum.AlertTypeEnum.CRITICAL.value()));
         Double majorRatio = str2double(propertiesHealth.getProperty(BusinessEnum.AlertTypeEnum.MAJOR.value()));
@@ -451,23 +491,23 @@ public class BusinessServiceImpl implements BusinessService {
 
         businessResourceList.forEach(x -> {
             OperationMonitorEntity operationMonitorEntity = monitorUuidList.get(x.getMonitorId());
-            String monitorType = operationMonitorEntity.getMonitorType();
+            String monitorType = operationMonitorEntity.getLightType();
             String monitorStatusQuotaName = "";
-            if (monitorType.equals(BusinessEnum.MonitorTypeEnum.TOMCAT.value())) {
+            if (monitorType.equals(BusinessEnum.LightTypeEnum.TOMCAT.value())) {
                 monitorStatusQuotaName = BusinessEnum.QuotaEnum.TOMCAT_MONITORSTATUS.value();
-            } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.MYSQL.value())) {
+            } else if (monitorType.equals(BusinessEnum.LightTypeEnum.MYSQL.value())) {
                 monitorStatusQuotaName = BusinessEnum.QuotaEnum.MYSQL_MONITORSTATUS.value();
-            } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.CVK.value())) {
+            } else if (monitorType.equals(BusinessEnum.LightTypeEnum.CVK.value())) {
                 monitorStatusQuotaName = BusinessEnum.QuotaEnum.CVK_MONITORSTATUS.value();
-            } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.VIRTUALMACHINE.value())) {
+            } else if (monitorType.equals(BusinessEnum.LightTypeEnum.VIRTUALMACHINE.value())) {
                 monitorStatusQuotaName = BusinessEnum.QuotaEnum.VIRTUALMACHINE_MONITORSTATUS.value();
-            } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.K8SNODE.value())) {
+            } else if (monitorType.equals(BusinessEnum.LightTypeEnum.K8SNODE.value())) {
                 monitorStatusQuotaName = BusinessEnum.QuotaEnum.K8SNODE_MONITORSTATUS.value();
-            } else if (monitorType.equals(BusinessEnum.MonitorTypeEnum.K8SCONTAINER.value())) {
+            } else if (monitorType.equals(BusinessEnum.LightTypeEnum.K8SCONTAINER.value())) {
                 monitorStatusQuotaName = BusinessEnum.QuotaEnum.K8SCONTAINER_MONITORSTATUS.value();
             }
             String monitorstatus = monitorService.getQuotaValue(x.getMonitorId(), monitorStatusQuotaName);
-            if (monitorstatus.equals("0")) {
+            if (null==monitorstatus || monitorstatus.equals("0")) {
                 //监控不可达 则这个资源的健康度为0
                 resHealthMap.put(x.getMonitorId(), 0.0);
             } else {
@@ -479,39 +519,39 @@ public class BusinessServiceImpl implements BusinessService {
         });
         //业务健康度
         Double healthscore = calBussinessBusyScore(resHealthMap, resWeightMap);
-        businessEntity.setHealth_score(double2float2(healthscore));
+        businessEntity.setHealth_score(double2int(healthscore));
         //资源可用度
-        Map<String,Double> resAvailableMap = new HashMap<>();
+        Map<String, Double> resAvailableMap = new HashMap<>();
         int day = str2int(propertiesHealth.getProperty(BusinessEnum.BusinessAvailableEnum.AVAILABLE_INTERVAL.value()));
         businessResourceList.forEach(x -> {
             Double resAvaliable = 0.0;
             Double reHealth = resHealthMap.get(x.getMonitorId());
             List<InfluxData> influxDataList = influxService.getScoreDataBymonitorAndInterval(x.getMonitorId(), day);
-            if (null == influxDataList || influxDataList.size() == 0){
+            if (null == influxDataList || influxDataList.size() == 0) {
                 //如果列表为空，判断健康度是否为0，为0，则可用性为0，健康度不为0，可用性为100.0，
-                if (reHealth == 0){
+                if (reHealth == 0) {
                     resAvaliable = 0.0;
-                }else {
+                } else {
                     resAvaliable = 100.0;
                 }
-            }else {
+            } else {
                 //如果列表不为空，如果现在这次健康度为0，则（1-（7天内健康度为0的次数+1）/（7天内所有数据条数+1））*100，
                 // 如果这次健康度不为0，则（1-（7天内健康度为0的次数）/（7天内所有数据条数+1））*100
                 int healthCount = calHealthCount(influxDataList);
-                int sumcount  = influxDataList.size();
-                if (reHealth==0){
-                    resAvaliable = (1-(healthCount+1)*1.0/(sumcount+1))*100;
-                }else {
-                    resAvaliable = (1-healthCount*1.0/(sumcount+1))*100;
+                int sumcount = influxDataList.size();
+                if (reHealth == 0) {
+                    resAvaliable = (1 - (healthCount + 1) * 1.0 / (sumcount + 1)) * 100;
+                } else {
+                    resAvaliable = (1 - healthCount * 1.0 / (sumcount + 1)) * 100;
                 }
 
             }
-            resAvailableMap.put(x.getMonitorId(),resAvaliable);
+            resAvailableMap.put(x.getMonitorId(), resAvaliable);
         });
         Double availablescore = calBussinessBusyScore(resAvailableMap, resWeightMap);
-        businessEntity.setAvailable_score(double2float2(availablescore));
+        businessEntity.setAvailable_score(double2int(availablescore));
         //将资源的健康度，繁忙度，可用度保存至数据库 influxdb,mysql
-        businessResourceList.forEach(x->{
+        businessResourceList.forEach(x -> {
             double busy = double2float2(resourceBusyScoreMap.get(x.getMonitorId()));
             double health = double2float2(resHealthMap.get(x.getMonitorId()));
             double ava = double2float2(resAvailableMap.get(x.getMonitorId()));
@@ -528,6 +568,21 @@ public class BusinessServiceImpl implements BusinessService {
         });
         //将业务的健康度，繁忙度，可用度保存在mysql
         dao.insertBusiness(businessEntity);
+//        return;
+    }
+
+    @Override
+    public void calculateAllScore() {
+        List<BusinessEntity> es = dao.getBusinessList();
+        if (null != es && es.size() > 0) {
+            es.forEach(x -> {
+                try {
+                    calculateBusinessScore(x.getUuid());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
     }
 
     @Override
@@ -548,8 +603,8 @@ public class BusinessServiceImpl implements BusinessService {
     @Override
     public PageBean getBusinessListByPage(PageData view) {
         List<BusinessEntity> list = dao.getBusinessList();
-        PageBean pageBean = new PageBean(view.getPageIndex(),view.getPageSize(),list.size());
-        List<BusinessEntity> mylist = dao.getBusinessListByPage(pageBean.getStartIndex(),view.getPageSize());
+        PageBean pageBean = new PageBean(view.getPageIndex(), view.getPageSize(), list.size());
+        List<BusinessEntity> mylist = dao.getBusinessListByPage(pageBean.getStartIndex(), view.getPageSize());
         pageBean.setList(mylist);
         return pageBean;
     }
@@ -566,47 +621,61 @@ public class BusinessServiceImpl implements BusinessService {
         }
     }
 
+    @Override
+    public boolean delBusiness(String uuid) {
+        //删除业务内的资源
+        dao.delBusinessResourceByBusinessId(uuid);
+        //删除业务
+        dao.delBusinessByUuid(uuid);
+        return false;
+    }
+
+    @Override
+    public BusinessEntity insertBusiness(BusinessEntity business) {
+        return dao.insertBusiness(business);
+    }
+
     private List<OperationMonitorEntity> getAllMonitorRecord() {
         List<OperationMonitorEntity> operationMonitorEntities = new ArrayList<>();
         List<DBMonitorEntity> dblist = monitorService.getAllDbMonitorEntity();
-        dblist.forEach(x->{
+        dblist.forEach(x -> {
             OperationMonitorEntity o = new OperationMonitorEntity();
-            BeanUtils.copyProperties(x,o);
+            BeanUtils.copyProperties(x, o);
             o.setLightType(BusinessEnum.LightTypeEnum.MYSQL.value());
             operationMonitorEntities.add(o);
         });
         List<TomcatMonitorEntity> tomcatList = monitorService.getAllTomcatMonitorEntity();
-        tomcatList.forEach(x->{
+        tomcatList.forEach(x -> {
             OperationMonitorEntity o = new OperationMonitorEntity();
-            BeanUtils.copyProperties(x,o);
+            BeanUtils.copyProperties(x, o);
             o.setLightType(BusinessEnum.LightTypeEnum.TOMCAT.value());
             operationMonitorEntities.add(o);
         });
         List<HostMonitorEntity> cvkList = monitorService.getAllHostMonitorEntity();
-        cvkList.forEach(x->{
+        cvkList.forEach(x -> {
             OperationMonitorEntity o = new OperationMonitorEntity();
-            BeanUtils.copyProperties(x,o);
+            BeanUtils.copyProperties(x, o);
             o.setLightType(BusinessEnum.LightTypeEnum.CVK.value());
             operationMonitorEntities.add(o);
         });
         List<VmMonitorEntity> vmList = monitorService.getAllVmMonitorEntity();
-        vmList.forEach(x->{
+        vmList.forEach(x -> {
             OperationMonitorEntity o = new OperationMonitorEntity();
-            BeanUtils.copyProperties(x,o);
+            BeanUtils.copyProperties(x, o);
             o.setLightType(BusinessEnum.LightTypeEnum.VIRTUALMACHINE.value());
             operationMonitorEntities.add(o);
         });
         List<K8snodeMonitorEntity> k8snlist = monitorService.getAllK8snodeMonitorEntity();
-        k8snlist.forEach(x->{
+        k8snlist.forEach(x -> {
             OperationMonitorEntity o = new OperationMonitorEntity();
-            BeanUtils.copyProperties(x,o);
+            BeanUtils.copyProperties(x, o);
             o.setLightType(BusinessEnum.LightTypeEnum.K8SNODE.value());
             operationMonitorEntities.add(o);
         });
         List<K8scontainerMonitorEntity> k8scList = monitorService.getAllK8sContainerMonitorEntity();
-        k8scList.forEach(x->{
+        k8scList.forEach(x -> {
             OperationMonitorEntity o = new OperationMonitorEntity();
-            BeanUtils.copyProperties(x,o);
+            BeanUtils.copyProperties(x, o);
             o.setLightType(BusinessEnum.LightTypeEnum.K8SCONTAINER.value());
             operationMonitorEntities.add(o);
         });
@@ -615,6 +684,7 @@ public class BusinessServiceImpl implements BusinessService {
 
     /**
      * 将double转为float保留两位小数
+     *
      * @param d
      * @return
      */
@@ -626,15 +696,24 @@ public class BusinessServiceImpl implements BusinessService {
         return df;
     }
 
+    private int double2int(Double d) {
+        BigDecimal b = new BigDecimal(d);
+//        float df = b.setScale(2, BigDecimal.ROUND_HALF_UP).floatValue();
+        int df = b.setScale(0, BigDecimal.ROUND_DOWN).intValue();
+
+        return df;
+    }
+
     /**
      * 计算influxdb这些数据中健康度为0的次数
+     *
      * @param influxDataList
      * @return
      */
     private int calHealthCount(List<InfluxData> influxDataList) {
         int count = 0;
         for (InfluxData influxData : influxDataList) {
-            if (influxData.getHealth_score() == 0){
+            if (influxData.getHealth_score() == 0) {
                 count++;
             }
         }
@@ -652,8 +731,8 @@ public class BusinessServiceImpl implements BusinessService {
     private Double calResourceHealthScore(List<Double> ratioList, Map<String, Integer> severityCount) {
         Double sum = 0.0;
         for (int i = 0; i < ratioList.size(); i++) {
-            Integer cpunt =0;
-            if (severityCount.containsKey(i+"")) {
+            Integer cpunt = 0;
+            if (severityCount.containsKey(i + "")) {
                 cpunt = severityCount.get(i + "");
             }
             sum += cpunt * ratioList.get(i);
@@ -697,13 +776,13 @@ public class BusinessServiceImpl implements BusinessService {
         for (int i = 0; i < businessResourceList.size(); i++) {
             BusinessResourceEntity x = businessResourceList.get(i);
             OperationMonitorEntity operationMonitorEntity = monitorUuidList.get(x.getMonitorId());
-            String monitorType = operationMonitorEntity.getMonitorType();
+            String monitorType = operationMonitorEntity.getLightType();
             sum += typeWeighMap.get(monitorType);
         }
         Double finalSum = sum;
         businessResourceList.forEach(x -> {
             OperationMonitorEntity operationMonitorEntity = monitorUuidList.get(x.getMonitorId());
-            String monitorType = operationMonitorEntity.getMonitorType();
+            String monitorType = operationMonitorEntity.getLightType();
             monitorWeight.put(x.getMonitorId(), typeWeighMap.get(monitorType) / finalSum);
         });
         return monitorWeight;

@@ -32,14 +32,15 @@ public class InfluxDBConnect {
         String []str =dbEndpoint.split(":");
 
         String ip = null;
-        try {
-            ip = ProperUtil.getClusterIpByServiceName(str[0]);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-//        String ip="47.94.157.199";
-        System.out.println(ip);
+//        try {
+//            ip = ProperUtil.getClusterIpByServiceName(str[0]);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+         ip="47.105.64.176";
+//        System.out.println(ip);
         String openurl = HTTP+ip+":"+str[1];
+//        String openurl = HTTP+dbEndpoint;
         if(influxDB == null){
             influxDB = InfluxDBFactory.connect(openurl, dbUserName, dbPassword);
         }

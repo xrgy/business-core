@@ -2,10 +2,8 @@ package com.gy.businessCore.service;
 
 import com.gy.businessCore.entity.*;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -42,6 +40,10 @@ public interface BusinessService {
     void calculateBusinessScore(String businessId) throws IOException;
 
     /**
+     * 计算所有业务score
+     */
+    void calculateAllScore();
+    /**
      * 根据业务Id获取该业务中的资源
      * @param businessId
      * @return
@@ -69,4 +71,18 @@ public interface BusinessService {
     PageBean getBusinessListByPage(PageData view);
 
     boolean delBusinessResource(List<BusinessResourceEntity> ress);
+
+    /**
+     * 删除业务业务内的资源
+     * @param uuid
+     * @return
+     */
+    boolean delBusiness(String uuid);
+
+    /**
+     * 插入业务
+     * @param business
+     * @return
+     */
+    BusinessEntity insertBusiness(BusinessEntity business);
 }

@@ -42,4 +42,8 @@ public interface BusinessDao {
     List<BusinessResourceEntity> getBusinessResourceByMonitorUuid(String monitorUuid);
 
     boolean delBusinessResource(BusinessResourceEntity x);
+
+    boolean delBusinessResourceByBusinessId(String uuid);
+
+    boolean delBusinessByUuid(String uuid);
 }

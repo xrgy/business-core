@@ -1,6 +1,7 @@
 package com.gy.businessCore;
 
 import com.gy.businessCore.base.BaseRepositoryFactoryBean;
+import com.gy.businessCore.schedule.WeaveScheduleTask;
 import com.gy.businessCore.utils.ProperUtil;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -16,5 +17,7 @@ public class BingoApplication {
     public static void main(String[] args){
         ProperUtil.SetConfInfo();
         SpringApplication.run(BingoApplication.class,args);
+        WeaveScheduleTask task = new WeaveScheduleTask();
+//        task.scheduleCalBusScore();
     }
 }

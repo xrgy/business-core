@@ -24,13 +24,13 @@ public class BusinessEntity {
     private String name;
 
     @Column(name = "busy_score")
-    private double busy_score;
+    private int busy_score;
 
     @Column(name = "health_score")
-    private double health_score;
+    private int health_score;
 
     @Column(name = "available_score")
-    private double available_score;
+    private int available_score;
 
     @Column(name = "cluster")
     private String cluster;

@@ -39,12 +39,14 @@ public class AlertServiceImpl implements AlertService {
 
     private String alertPrefix(){
         String ip = "";
-        try {
-//            ip="127.0.0.1";
-            ip = EtcdUtil.getClusterIpByServiceName("alert-coll-service");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try {
+//            return HTTP+"47.105.64.176:30095/"+PREFIX+"/";
+
+            ip="127.0.0.1";
+//            ip = EtcdUtil.getClusterIpByServiceName("alert-coll-service");
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
         return HTTP+ip+":"+PORT+"/"+PREFIX+"/";
     }
 

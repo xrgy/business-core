@@ -8,10 +8,7 @@ import com.gy.businessCore.entity.*;
 import com.gy.businessCore.service.BusinessService;
 import com.gy.businessCore.service.InfluxService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -71,7 +68,13 @@ public class BusinessController {
         List<BusinessResourceEntity> resourceEntityList = mapper.readValue(data,
                 new TypeReference<List<BusinessResourceEntity>>(){});
         return service.insertBusinessResourceList(resourceEntityList);
-
+    }
+    @RequestMapping("addBusiness")
+    @ResponseBody
+    public boolean addBusiness(@RequestBody String data) throws IOException {
+        BusinessEntity business = mapper.readValue(data, BusinessEntity.class);
+        service.insertBusiness(business);
+        return true;
     }
     @RequestMapping("getBusinessResourcesByBusinessId")
     @ResponseBody
@@ -126,5 +129,10 @@ public class BusinessController {
     public boolean delBusinessResource(@RequestBody String data) throws IOException {
         List<BusinessResourceEntity> ress = mapper.readValue(data,new TypeReference<List<BusinessResourceEntity>>(){});
         return service.delBusinessResource(ress);
+    }
+    @RequestMapping(value = "delBusiness",method =  RequestMethod.DELETE)
+    @ResponseBody
+    public boolean delBusiness(String uuid) throws IOException {
+        return service.delBusiness(uuid);
     }
 }
